@@ -1,2 +1,5 @@
-# wasm_game_of_life
+# Web Assembly Game of Life
+
 Game of Life Web Assembly Demonstration
+
+
