@@ -68,29 +68,59 @@ using LifeBuffer = std::unordered_map<LifeCoord,CellState>;
 // We need a double buffer to build the next state.
 using LifeDBuffer = std::pair<LifeBuffer,LifeBuffer>;
 
+// Make a Color palette
+class Palette
+{
+  public:
+
+  Palette( const SDL_Surface* screen ) 
+  {
+    // Number of color palette entries
+    constexpr unsigned NUM_COLORS=256;
+
+    // Interpolate the platte using 3 base colors.
+    constexpr unsigned BASE_COLORS=3;
+    constexpr unsigned COLOR_RANGES = BASE_COLORS-1;
+    constexpr unsigned ENTRIES_PER_RANGE =    // Round up 
+        ( NUM_COLORS + COLOR_RANGES-1) / ( COLOR_RANGES );
+    constexpr unsigned RI = 0;    // Red Index
+    constexpr unsigned GI = 1;    // Green Index
+    constexpr unsigned BI = 2;    // Blue Index
+
+    const unsigned int col[ BASE_COLORS ][3] = { 
+      { 128, 220, 255 },    // Light Blue  
+      { 255, 255, 0  },     // Yellow
+      { 255, 0,  0   }};    // Red
+
+    for ( int i = 0; i < NUM_COLORS ; ++i )
+    {
+      const unsigned int cn = i / ENTRIES_PER_RANGE;
+      const unsigned int co = cn + 1;
+      const unsigned int s = i % ENTRIES_PER_RANGE;
+      const unsigned int oms = ENTRIES_PER_RANGE - s;
+
+      const unsigned r = col[co][RI] * s   / ENTRIES_PER_RANGE + 
+                         col[cn][RI] * oms / ENTRIES_PER_RANGE;
+      const unsigned g = col[co][GI] * s   / ENTRIES_PER_RANGE +
+                         col[cn][GI] * oms / ENTRIES_PER_RANGE;
+      const unsigned b = col[co][BI] * s   / ENTRIES_PER_RANGE +
+                         col[cn][BI] * oms / ENTRIES_PER_RANGE;
+
+      values.push_back( SDL_MapRGBA( screen->format, r, g, b, 255 ));
+    }
+  }
+  Palette() = delete;
+  Palette( const Palette& ) = delete;
+  Palette& operator=( const Palette& ) = delete;
+
+  std::vector<Uint32> values;
+};
+
 // Draw the game of life buffer on the screen.
 void drawScreen( SDL_Surface *screen, const LifeBuffer& buffer, const LifeBuffer& age )
 {
   const Uint32 black = SDL_MapRGBA( screen->format, 0, 0, 0, 255 );
-
-  Uint32 palette[256];
-  unsigned int col[3][3] = { 
-    { 128, 220, 255 },
-    { 255, 255, 0  },
-    { 255, 0,  0   }};
-
-  for ( int i = 0; i < 256; ++i )
-  {
-    unsigned int cn = i / 128;
-    unsigned int co = cn + 1;
-    unsigned int s = i % 128;
-
-    const unsigned r = col[co][0] * s / 127 + col[cn][0] * ( 127-s) / 127;
-    const unsigned g = col[co][1] * s / 127 + col[cn][1] * ( 127-s) / 127;
-    const unsigned b = col[co][2] * s / 127 + col[cn][2] * ( 127-s) / 127;
-
-    palette[ i ] = SDL_MapRGBA( screen->format, r, g, b, 255 );
-  }
+  const Palette palette(screen);
 
   // Clear
   Uint32 *start = (Uint32*)screen->pixels;
@@ -101,8 +131,10 @@ void drawScreen( SDL_Surface *screen, const LifeBuffer& buffer, const LifeBuffer
   for ( const auto& i : buffer )
   {
     const LifeCoord& c = i.first;
-    const unsigned int adjustedAge = age.at( c ).value / 16;
-    const unsigned int clippedAge = adjustedAge < 255 ? adjustedAge : 255;
+    constexpr unsigned AGE_RATE = 16;   // lower values = faster color aging
+    const unsigned int adjustedAge = age.at( c ).value / AGE_RATE;
+    const unsigned int clippedAge = (adjustedAge < palette.values.size()) ?
+        adjustedAge : palette.values.size()-1;
 
     if ( i.second.value )
     {
@@ -110,7 +142,7 @@ void drawScreen( SDL_Surface *screen, const LifeBuffer& buffer, const LifeBuffer
         for ( int y = 0; y < PIXEL_PER_GRID; ++y ) {
           const int xc = x + c.first  * PIXEL_PER_GRID;
           const int yc = y + c.second * PIXEL_PER_GRID;
-          start[ xc + yc * X_SCREEN ] = palette[ clippedAge ];
+          start[ xc + yc * X_SCREEN ] = palette.values.at( clippedAge );
         }
       }
     }
