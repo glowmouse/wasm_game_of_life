@@ -19,14 +19,14 @@ constexpr int Y_SCREEN=768;
 // For bigger game of life cells
 constexpr int PIXEL_PER_GRID=2;
 
-// Definate the game of life play board.
+// Create the game of life play board.
 constexpr int X_GRID=X_SCREEN/PIXEL_PER_GRID;
 constexpr int Y_GRID=Y_SCREEN/PIXEL_PER_GRID;
 
 // Game of life co-ordinate.  X = first, Y = second.
 using LifeCoord = std::pair<unsigned,unsigned>;
 
-// For making patterns usign ASCII art.
+// For making patterns using ASCII art.
 using Pattern = std::vector< std::string >;
 
 // A Glider Gun
@@ -78,7 +78,7 @@ class Palette
     // Number of color palette entries
     constexpr unsigned NUM_COLORS=256;
 
-    // Interpolate the platte using 3 base colors.
+    // Interpolate the palette using 3 base colors.
     constexpr unsigned BASE_COLORS=3;
     constexpr unsigned COLOR_RANGES = BASE_COLORS-1;
     constexpr unsigned ENTRIES_PER_RANGE =    // Round up 
@@ -158,14 +158,14 @@ void advanceSim( LifeDBuffer &dbuffer )
   // Clear out the new buffer.
   dbuffer.first.clear();
 
-  // Figure out hold many nightbours each cell has.
+  // Figure out hold many neighbors each cell has.
   for ( const auto& i : dbuffer.second )
   {
     if ( i.second.value == 0 ) continue;
     const LifeCoord& c = i.first;
     for ( int x = -1; x <=1; ++x ) {
       for ( int y = -1; y <=1; ++y ) {
-        if ( x !=0 || y != 0 ) {    // I can't be a neighbour of myself
+        if ( x !=0 || y != 0 ) {    // I can't be a neighbor of myself
           const int xc = (x+c.first  + X_GRID) % X_GRID; // wrap around x
           const int yc = (y+c.second + Y_GRID) % Y_GRID; // wrap around y
           dbuffer.first[ LifeCoord( xc, yc )].value += 1;
@@ -174,7 +174,7 @@ void advanceSim( LifeDBuffer &dbuffer )
     }   
   }
 
-  // Apply the game of life rules to any cells with neighbours from
+  // Apply the game of life rules to any cells with neighbors from
   // the old buffer.
   for ( auto& i : dbuffer.first )
   {
